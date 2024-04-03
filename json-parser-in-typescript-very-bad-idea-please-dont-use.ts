@@ -2,15 +2,14 @@ export type ParserError<T extends string> = { error: true } & T
 type EatWhitespace<State extends string> =
   string extends State
     ? ParserError<"EatWhitespace got generic string type">
-    : State extends
-        | ` ${infer State}`
-        | `\n${infer State}`
-        | `\u000D${infer State}`
-        | `\u0009${infer State}`
+    : State extends `${' ' | '\n' | '\u000D' | '\u0009'}${infer State}`
       ? EatWhitespace<State>
       : State
+type FlattenObj<O extends object> = {
+  [K in keyof O]: O[K]
+}
 type AddKeyValue<Memo extends Record<string, any>, Key extends string, Value extends any> =
-  Memo & { [K in Key]: Value }
+  FlattenObj<Memo & { [K in Key]: Value }>
 type ParseJsonObject<State extends string, Memo extends Record<string, any> = {}> =
   string extends State
     ? ParserError<"ParseJsonObject got generic string type">

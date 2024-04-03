@@ -1,7 +1,7 @@
 import { expectTypeOf } from 'expect-type'
 import { ParseJson, ParserError } from './json-parser-in-typescript-very-bad-idea-please-dont-use'
 
-const p = <T extends string>(parsed: T): ParseJson<T> => ({} as any)
+const p = <T extends string>(_parsed: T): ParseJson<T> => ({} as any)
 
 expectTypeOf(p('{"a": "3"}')).toMatchTypeOf<{a: "3"}>()
 expectTypeOf(p('{"a": []}')).toMatchTypeOf<{a: []}>()
@@ -50,4 +50,3 @@ expectTypeOf(p('"\\"')).toMatchTypeOf<ParserError<string>>()
 expectTypeOf(p('"\\')).toMatchTypeOf<ParserError<string>>()
 expectTypeOf(p('"')).toMatchTypeOf<ParserError<string>>()
 expectTypeOf(p('"ab')).toMatchTypeOf<ParserError<string>>()
-
