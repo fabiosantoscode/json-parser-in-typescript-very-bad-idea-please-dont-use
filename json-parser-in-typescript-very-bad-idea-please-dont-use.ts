@@ -84,8 +84,10 @@ type ExtractNumber<State extends string> =
 
 export type ParseJson<T extends string> =
   ParseJsonValue<T> extends infer Result
-    ? Result extends [infer Value, string]
-      ? Value
+    ? Result extends [infer Value, infer Rest extends string]
+      ? EatWhitespace<Rest> extends ''
+        ? Value
+        : ParserError<`Garbage at the end: "${Rest}"`>
       : Result extends ParserError<any>
         ? Result
         : ParserError<"ParseJsonValue returned unexpected Result">

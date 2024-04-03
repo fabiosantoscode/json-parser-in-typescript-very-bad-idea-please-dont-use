@@ -1,5 +1,5 @@
 import { expectTypeOf } from 'expect-type'
-import { ParseJson } from './json-parser-in-typescript-very-bad-idea-please-dont-use'
+import { ParseJson, ParserError } from './json-parser-in-typescript-very-bad-idea-please-dont-use'
 
 const p = <T extends string>(parsed: T): ParseJson<T> => ({} as any)
 
@@ -25,3 +25,8 @@ expectTypeOf(p('.1')).toMatchTypeOf<number>()
 expectTypeOf(p('-1')).toMatchTypeOf<-1>()
 expectTypeOf(p('1e2')).toMatchTypeOf<number>()
 expectTypeOf(p('1e-1')).toMatchTypeOf<number>()
+
+// garbage at the end
+expectTypeOf(p('{}F')).toMatchTypeOf<ParserError<'Garbage at the end: "F"'>>()
+expectTypeOf(p('1F')).toMatchTypeOf<ParserError<'Garbage at the end: "F"'>>()
+expectTypeOf(p('1n')).toMatchTypeOf<ParserError<'Garbage at the end: "n"'>>()
