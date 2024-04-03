@@ -1,8 +1,12 @@
-type ParserError<T extends string> = { error: true } & T
+export type ParserError<T extends string> = { error: true } & T
 type EatWhitespace<State extends string> =
   string extends State
     ? ParserError<"EatWhitespace got generic string type">
-    : State extends ` ${infer State}` | `\n${infer State}`
+    : State extends
+        | ` ${infer State}`
+        | `\n${infer State}`
+        | `\u000D${infer State}`
+        | `\u0009${infer State}`
       ? EatWhitespace<State>
       : State
 type AddKeyValue<Memo extends Record<string, any>, Key extends string, Value extends any> =
@@ -44,13 +48,40 @@ type ParseJsonValue<State extends string> =
         ? [true, State]
         : EatWhitespace<State> extends `false${infer State}`
           ? [false, State]
-          : EatWhitespace<State> extends `"${infer Value}"${infer State}`
+          : ParseNumber<State> extends [infer Value, infer State]
             ? [Value, State]
-            : EatWhitespace<State> extends `[${infer State}`
-              ? ParseJsonArray<State>
-              : EatWhitespace<State> extends `{${infer State}`
-                ? ParseJsonObject<State>
-                : ParserError<`ParseJsonValue received unexpected token: ${State}`>
+            : EatWhitespace<State> extends `"${infer Value}"${infer State}`
+              ? [Value, State]
+              : EatWhitespace<State> extends `[${infer State}`
+                ? ParseJsonArray<State>
+                : EatWhitespace<State> extends `{${infer State}`
+                  ? ParseJsonObject<State>
+                  : ParserError<`ParseJsonValue received unexpected token: ${State}`>
+
+type ParseNumber<State extends string> =
+  string extends State
+    ? ParserError<"ParseNumber got generic string type">
+    : ExtractNumber<State> extends [infer Num extends string, infer State]
+      ? Num extends `${infer Num extends number}`
+        ? [Num, State]
+        : ParserError<`could not parse the number ${Num}`>
+      : ParserError<"not a number">
+
+type Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
+type NumberCharacter =
+  | Digit
+  | "-"
+  | "."
+  | "e"
+  | "E"
+
+type ExtractNumber<State extends string> =
+  EatWhitespace<State> extends `${infer First extends NumberCharacter}${infer State}`
+    ? ExtractNumber<State> extends [infer Rest extends string, infer State]
+      ? [`${First}${Rest}`, State]
+      : [`${First}`, State]
+    : ParserError<'Not a number'>
+
 export type ParseJson<T extends string> =
   ParseJsonValue<T> extends infer Result
     ? Result extends [infer Value, string]
