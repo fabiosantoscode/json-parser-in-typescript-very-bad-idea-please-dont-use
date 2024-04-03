@@ -50,8 +50,8 @@ type ParseJsonValue<State extends string> =
           ? [false, State]
           : ParseNumber<State> extends [infer Value, infer State]
             ? [Value, State]
-            : EatWhitespace<State> extends `"${infer Value}"${infer State}`
-              ? [Value, State]
+            : EatWhitespace<State> extends `"${infer State}`
+              ? ParseString<State>
               : EatWhitespace<State> extends `[${infer State}`
                 ? ParseJsonArray<State>
                 : EatWhitespace<State> extends `{${infer State}`
@@ -63,9 +63,10 @@ type ParseNumber<State extends string> =
     ? ParserError<"ParseNumber got generic string type">
     : ExtractNumber<State> extends [infer Num extends string, infer State]
       ? Num extends `${infer Num extends number}`
+        // TODO does not work with 1e10, etc
         ? [Num, State]
-        : ParserError<`could not parse the number ${Num}`>
-      : ParserError<"not a number">
+        : ParserError<`Could not parse the number ${Num}`>
+      : ParserError<"Not a number">
 
 type Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
 type NumberCharacter =
@@ -81,6 +82,34 @@ type ExtractNumber<State extends string> =
       ? [`${First}${Rest}`, State]
       : [`${First}`, State]
     : ParserError<'Not a number'>
+
+type ParseString<S extends string> =
+  string extends S
+    ? ParserError<"ParseString got generic string type">
+    : S extends `"${infer Rest}`
+      ? ['', Rest]
+      : S extends `\\${infer C}${infer Rest}`
+        ? ParseStringRest<ControlChar<C>, Rest>
+        : S extends `${infer AChar}${infer Rest}`
+          ? ParseStringRest<AChar, Rest>
+          : ParserError<'invalid string'>
+
+type ParseStringRest<C extends string, Rest extends string> =
+  ParseString<Rest> extends [infer S extends string, infer Rest extends string]
+    ? [`${C}${S}`, Rest]
+    : ParserError<`invalid string at: ${Rest}`>
+
+type ControlChar<S extends string> =
+  S extends `\\` ? `\\`
+  : S extends `n` ? `\n`
+  : S extends `r` ? `\r`
+  : S extends `t` ? `\t`
+  : S extends `f` ? `\f`
+  : S extends `b` ? `\b`
+  : S extends `/` ? `\/`
+  : S extends `"` ? `\"`
+  // TODO \uXXXX
+  : ParserError<`invalid control char \\${S}`>
 
 export type ParseJson<T extends string> =
   ParseJsonValue<T> extends infer Result

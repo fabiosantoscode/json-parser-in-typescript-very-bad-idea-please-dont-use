@@ -30,3 +30,24 @@ expectTypeOf(p('1e-1')).toMatchTypeOf<number>()
 expectTypeOf(p('{}F')).toMatchTypeOf<ParserError<'Garbage at the end: "F"'>>()
 expectTypeOf(p('1F')).toMatchTypeOf<ParserError<'Garbage at the end: "F"'>>()
 expectTypeOf(p('1n')).toMatchTypeOf<ParserError<'Garbage at the end: "n"'>>()
+
+// Strings
+expectTypeOf(p('"a"')).toMatchTypeOf<"a">()
+expectTypeOf(p('"ab"')).toMatchTypeOf<"ab">()
+expectTypeOf(p('"abc"')).toMatchTypeOf<"abc">()
+expectTypeOf(p('"a\\\\bc"')).toMatchTypeOf<"a\\bc">()
+expectTypeOf(p('"a\\\\b\\\\c"')).toMatchTypeOf<"a\\b\\c">()
+expectTypeOf(p('"a\\nbc"')).toMatchTypeOf<"a\nbc">()
+expectTypeOf(p('"a\\rbc"')).toMatchTypeOf<"a\rbc">()
+expectTypeOf(p('"a\\/bc"')).toMatchTypeOf<"a\/bc">()
+expectTypeOf(p('"a\\\"bc"')).toMatchTypeOf<"a\"bc">()
+
+expectTypeOf(p('"\\\\"')).toMatchTypeOf<"\\">()
+expectTypeOf(p('"\\""')).toMatchTypeOf<'"'>()
+expectTypeOf(p('""')).toMatchTypeOf<"">()
+
+expectTypeOf(p('"\\"')).toMatchTypeOf<ParserError<string>>()
+expectTypeOf(p('"\\')).toMatchTypeOf<ParserError<string>>()
+expectTypeOf(p('"')).toMatchTypeOf<ParserError<string>>()
+expectTypeOf(p('"ab')).toMatchTypeOf<ParserError<string>>()
+
