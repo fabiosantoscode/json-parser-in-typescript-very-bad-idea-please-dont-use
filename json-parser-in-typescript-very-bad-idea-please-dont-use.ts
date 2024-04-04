@@ -47,8 +47,8 @@ type ParseJsonValue<State extends string> =
         ? [true, State]
         : EatWhitespace<State> extends `false${infer State}`
           ? [false, State]
-          : ParseNumber<State> extends [infer Value, infer State]
-            ? [Value, State]
+          : EatWhitespace<State> extends `${NumberCharacter}${string}`
+            ? ParseNumber<State>
             : EatWhitespace<State> extends `"${infer State}`
               ? ParseString<State>
               : EatWhitespace<State> extends `[${infer State}`
@@ -61,26 +61,22 @@ type ParseNumber<State extends string> =
   string extends State
     ? ParserError<"ParseNumber got generic string type">
     : ExtractNumber<State> extends [infer Num extends string, infer State]
-      ? Num extends `${infer Num extends number}`
-        // TODO does not work with 1e10, etc
-        ? [Num, State]
-        : ParserError<`Could not parse the number ${Num}`>
-      : ParserError<"Not a number">
+      ? Num extends `${string}${"e" | "E"}${string}`
+        ? ParserError<"ParseJson does not support exponential syntax for numbers (1e10)">
+        : Num extends `${infer Num extends number}`
+          ? [Num, State]
+          : ParserError<`Could not parse the number ${Num}`>
+        : ParserError<"Not a number">
 
 type Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
-type NumberCharacter =
-  | Digit
-  | "-"
-  | "."
-  | "e"
-  | "E"
+type NumberCharacter = Digit | "-" | "." | "e" | "E"
 
 type ExtractNumber<State extends string> =
   EatWhitespace<State> extends `${infer First extends NumberCharacter}${infer State}`
     ? ExtractNumber<State> extends [infer Rest extends string, infer State]
       ? [`${First}${Rest}`, State]
       : [`${First}`, State]
-    : ParserError<'Not a number'>
+    : null // ends number
 
 type ParseString<S extends string> =
   string extends S
@@ -88,27 +84,30 @@ type ParseString<S extends string> =
     : S extends `"${infer Rest}`
       ? ['', Rest]
       : S extends `\\${infer C}${infer Rest}`
-        ? ParseStringRest<ControlChar<C>, Rest>
+        ? ParseStringRest<ControlChar<C>, ParseString<Rest>>
         : S extends `${infer AChar}${infer Rest}`
-          ? ParseStringRest<AChar, Rest>
+          ? ParseStringRest<[AChar], ParseString<Rest>>
           : ParserError<'invalid string'>
 
-type ParseStringRest<C extends string, Rest extends string> =
-  ParseString<Rest> extends [infer S extends string, infer Rest extends string]
-    ? [`${C}${S}`, Rest]
-    : ParserError<`invalid string at: ${Rest}`>
-
 type ControlChar<S extends string> =
-  S extends `\\` ? `\\`
-  : S extends `n` ? `\n`
-  : S extends `r` ? `\r`
-  : S extends `t` ? `\t`
-  : S extends `f` ? `\f`
-  : S extends `b` ? `\b`
-  : S extends `/` ? `\/`
-  : S extends `"` ? `\"`
-  // TODO \uXXXX
-  : ParserError<`invalid control char \\${S}`>
+  S extends `\\` ? [`\\`]
+  : S extends `n` ? [`\n`]
+  : S extends `r` ? [`\r`]
+  : S extends `t` ? [`\t`]
+  : S extends `f` ? [`\f`]
+  : S extends `b` ? [`\b`]
+  : S extends `/` ? [`\/`]
+  : S extends `"` ? [`\"`]
+  : S extends `u`
+    ? ParserError<"ParseJson does not support string unicode escapes (\\uXXXX)">
+    : ParserError<`invalid control char \\${S}`>
+
+type ParseStringRest<C, Rest> =
+  C extends [infer C extends string]
+    ? Rest extends [infer Rest extends string, infer State]
+      ? [`${C}${Rest}`, State]
+      : Rest // parse error
+    : C
 
 export type ParseJson<T extends string> =
   ParseJsonValue<T> extends infer Result

@@ -23,8 +23,6 @@ expectTypeOf(p('1')).toMatchTypeOf<1>()
 expectTypeOf(p('0.1')).toMatchTypeOf<0.1>()
 expectTypeOf(p('.1')).toMatchTypeOf<number>()
 expectTypeOf(p('-1')).toMatchTypeOf<-1>()
-expectTypeOf(p('1e2')).toMatchTypeOf<number>()
-expectTypeOf(p('1e-1')).toMatchTypeOf<number>()
 
 // garbage at the end
 expectTypeOf(p('{}F')).toMatchTypeOf<ParserError<'Garbage at the end: "F"'>>()
@@ -50,3 +48,8 @@ expectTypeOf(p('"\\"')).toMatchTypeOf<ParserError<string>>()
 expectTypeOf(p('"\\')).toMatchTypeOf<ParserError<string>>()
 expectTypeOf(p('"')).toMatchTypeOf<ParserError<string>>()
 expectTypeOf(p('"ab')).toMatchTypeOf<ParserError<string>>()
+
+// Errors for unimplemented features
+expectTypeOf(p('"\\u"')).toMatchTypeOf<ParserError<"ParseJson does not support string unicode escapes (\\uXXXX)">>()
+expectTypeOf(p('1e3')).toMatchTypeOf<ParserError<"ParseJson does not support exponential syntax for numbers (1e10)">>()
+expectTypeOf(p('1.1E-3.5')).toMatchTypeOf<ParserError<"ParseJson does not support exponential syntax for numbers (1e10)">>()
